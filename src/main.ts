@@ -10,11 +10,17 @@ import {
   Transport,
 } from "esptool-js";
 
-const FLASH_MAP = [
-  { path: "/bootloader.bin", address: 0x1000 },
+// ESP32 and ESP32-S2 use 0x1000; all newer variants (S3, C2, C3, C6, H2, …) use 0x0.
+const bootloaderAddress = (chip: string): number =>
+  /ESP32-S2\b/.test(chip) || (chip.includes("ESP32") && !/ESP32-[A-Z]/.test(chip))
+    ? 0x1000
+    : 0x0;
+
+const buildFlashMap = (chip: string) => [
+  { path: "/bootloader.bin", address: bootloaderAddress(chip) },
   { path: "/partitions.bin", address: 0x8000 },
   { path: "/firmware.bin", address: 0x10000 },
-] as const;
+];
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
@@ -64,6 +70,7 @@ if (!connectButton || !flashButton || !baudrateInput || !eraseAllInput || !logOu
 let transport: Transport | null = null;
 let loader: ESPLoader | null = null;
 let connected = false;
+let detectedChip = "";
 
 const appendLog = (message: string): void => {
   logOutput.textContent += `${message}\n`;
@@ -140,7 +147,9 @@ const connect = async () => {
     try {
       const chipName = await loader.main();
       connected = true;
+      detectedChip = chipName;
       appendLog(`Connected to ${chipName}`);
+      appendLog(`Bootloader address: 0x${bootloaderAddress(chipName).toString(16)}`);
     } catch (err) {
       // loader.main() opens the port; disconnect so it can be re-requested.
       await transport.disconnect();
@@ -163,8 +172,9 @@ const flash = async () => {
   appendLog("Preparing binaries...");
 
   try {
+    const flashMap = buildFlashMap(detectedChip);
     const binaries = await Promise.all(
-      FLASH_MAP.map(async (entry) => ({
+      flashMap.map(async (entry) => ({
         data: await fetchBinary(entry.path),
         address: entry.address,
       })),
