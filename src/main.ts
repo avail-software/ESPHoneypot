@@ -6,7 +6,8 @@ import {
   type LoaderOptions,
   Transport,
 } from "esptool-js";
-import { type BoardConfig, BOARDS, defaultBoard } from "./boards";
+import { type BoardConfig, type ConfigField, BOARDS, defaultBoard } from "./boards";
+import { configureDevice, type SerialPortLike } from "./serial-config";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Could not find #app");
@@ -18,29 +19,36 @@ const boardOptions = BOARDS.map(
 app.innerHTML = `
   <main class="container">
     <h1>HoneyBoot</h1>
-    <p class="lead">Flash firmware to your board over Web Serial.</p>
+    <p class="lead">Flash &amp; configure your honeypot from the browser.</p>
 
-    <section class="panel">
+    <section class="panel" id="boardPanel">
       <div class="row">
         <label for="board">Board</label>
         <select id="board">${boardOptions}</select>
       </div>
-
       <p id="boardInfo" class="board-info"></p>
+    </section>
 
+    <section class="panel" id="configPanel">
+      <h2>Honeypot Settings</h2>
+      <p class="hint">Sent to the device automatically after flashing.</p>
+      <div id="configFields"></div>
+    </section>
+
+    <section class="panel" id="flashPanel">
       <div class="row">
-        <label for="baudrate">Baudrate</label>
+        <label for="baudrate">Flash Baudrate</label>
         <input id="baudrate" type="number" min="9600" step="1" />
       </div>
 
       <div class="row checkbox">
-        <input id="eraseAll" type="checkbox" />
-        <label for="eraseAll">Erase all flash first</label>
+        <input id="eraseAll" type="checkbox" checked />
+        <label for="eraseAll">Erase all flash first (required for config)</label>
       </div>
 
       <div class="actions">
         <button id="connectBtn" type="button">Connect</button>
-        <button id="flashBtn" type="button" disabled>Flash firmware</button>
+        <button id="flashBtn" type="button" disabled>Flash &amp; Configure</button>
       </div>
     </section>
 
@@ -51,6 +59,8 @@ app.innerHTML = `
   </main>
 `;
 
+// ── DOM refs ──────────────────────────────────────────────────────────
+
 const $ = <T extends HTMLElement>(sel: string) => {
   const el = document.querySelector<T>(sel);
   if (!el) throw new Error(`Missing element: ${sel}`);
@@ -59,20 +69,66 @@ const $ = <T extends HTMLElement>(sel: string) => {
 
 const boardSelect = $<HTMLSelectElement>("#board");
 const boardInfo = $<HTMLParagraphElement>("#boardInfo");
+const configFieldsContainer = $<HTMLDivElement>("#configFields");
 const baudrateInput = $<HTMLInputElement>("#baudrate");
 const eraseAllInput = $<HTMLInputElement>("#eraseAll");
 const connectButton = $<HTMLButtonElement>("#connectBtn");
 const flashButton = $<HTMLButtonElement>("#flashBtn");
 const logOutput = $<HTMLPreElement>("#log");
 
+// ── State ─────────────────────────────────────────────────────────────
+
 let transport: Transport | null = null;
 let loader: ESPLoader | null = null;
+let serialPort: SerialPortLike | null = null;
 let connected = false;
 let activeBoard: BoardConfig = defaultBoard();
+
+// ── Board + config form ───────────────────────────────────────────────
+
+const renderConfigFields = (fields: ConfigField[]) => {
+  configFieldsContainer.innerHTML = fields
+    .map((f) => {
+      if (f.type === "checkbox") {
+        return `
+          <div class="row checkbox">
+            <input id="cfg_${f.id}" type="checkbox" ${f.defaultValue === "y" ? "checked" : ""} />
+            <label for="cfg_${f.id}">${f.label}</label>
+          </div>`;
+      }
+      return `
+        <div class="row">
+          <label for="cfg_${f.id}">${f.label}${f.required ? " *" : ""}</label>
+          <input id="cfg_${f.id}"
+                 type="${f.type === "url" ? "url" : f.type}"
+                 value="${f.defaultValue}"
+                 placeholder="${f.placeholder ?? ""}" />
+        </div>`;
+    })
+    .join("");
+};
+
+/** Read the form values in field-definition order, ready for the serial wizard. */
+const collectConfigValues = (fields: ConfigField[]): string[] =>
+  fields.map((f) => {
+    const el = document.querySelector<HTMLInputElement>(`#cfg_${f.id}`);
+    if (!el) return f.defaultValue;
+    if (f.type === "checkbox") return el.checked ? "y" : "n";
+    return el.value || f.defaultValue;
+  });
+
+const hasConfigInput = (fields: ConfigField[]): boolean =>
+  fields.some((f) => {
+    const el = document.querySelector<HTMLInputElement>(`#cfg_${f.id}`);
+    if (!el) return false;
+    if (f.type === "checkbox") return true;
+    return el.value.length > 0;
+  });
 
 const showBoardInfo = (board: BoardConfig) => {
   boardInfo.textContent = `${board.chip} · ${board.description}`;
   baudrateInput.value = String(board.defaultBaudrate);
+  renderConfigFields(board.configFields ?? []);
 };
 
 showBoardInfo(activeBoard);
@@ -84,6 +140,8 @@ boardSelect.addEventListener("change", () => {
     showBoardInfo(match);
   }
 });
+
+// ── Logging ───────────────────────────────────────────────────────────
 
 const appendLog = (msg: string): void => {
   logOutput.textContent += `${msg}\n`;
@@ -102,11 +160,16 @@ const terminal: IEspLoaderTerminal = {
   },
 };
 
+// ── UI helpers ────────────────────────────────────────────────────────
+
 const setBusy = (busy: boolean) => {
   connectButton.disabled = busy;
   flashButton.disabled = busy || !connected;
   boardSelect.disabled = busy || connected;
 };
+
+const toErrorMessage = (err: unknown): string =>
+  err instanceof Error ? err.message : String(err);
 
 const fetchBinary = async (path: string): Promise<Uint8Array> => {
   const res = await fetch(path);
@@ -114,8 +177,7 @@ const fetchBinary = async (path: string): Promise<Uint8Array> => {
   return new Uint8Array(await res.arrayBuffer());
 };
 
-const toErrorMessage = (err: unknown): string =>
-  err instanceof Error ? err.message : String(err);
+// ── Connect ───────────────────────────────────────────────────────────
 
 const connect = async () => {
   if (!("serial" in navigator)) {
@@ -126,6 +188,7 @@ const connect = async () => {
     await transport.disconnect();
     transport = null;
     loader = null;
+    serialPort = null;
     connected = false;
   }
 
@@ -139,6 +202,7 @@ const connect = async () => {
       }
     ).serial.requestPort();
 
+    serialPort = port as unknown as SerialPortLike;
     transport = new Transport(port, true);
 
     const options: LoaderOptions = {
@@ -157,14 +221,15 @@ const connect = async () => {
 
       if (!chip.includes(activeBoard.chip)) {
         appendLog(
-          `WARNING: detected ${chip}, but selected board expects ${activeBoard.chip}. ` +
-            `Flash addresses may be wrong — double-check your board selection.`,
+          `⚠ Detected ${chip}, but selected board expects ${activeBoard.chip}. ` +
+            `Check your board selection.`,
         );
       }
     } catch (err) {
       await transport.disconnect();
       transport = null;
       loader = null;
+      serialPort = null;
       throw err;
     }
   } finally {
@@ -172,16 +237,28 @@ const connect = async () => {
   }
 };
 
+// ── Flash + Configure ─────────────────────────────────────────────────
+
 const flash = async () => {
-  if (!loader) {
+  if (!loader || !serialPort) {
     appendLog("Not connected.");
     return;
+  }
+
+  const fields = activeBoard.configFields ?? [];
+  const shouldConfigure = fields.length > 0 && hasConfigInput(fields);
+
+  if (shouldConfigure && !eraseAllInput.checked) {
+    eraseAllInput.checked = true;
+    appendLog('Enabled "Erase all flash" — required for first-boot configuration.');
   }
 
   setBusy(true);
   appendLog(`Flashing for ${activeBoard.name}…`);
 
   try {
+    // ── Flash ──
+
     const binaries = await Promise.all(
       activeBoard.images.map(async (img) => ({
         data: await fetchBinary(img.path),
@@ -189,10 +266,11 @@ const flash = async () => {
       })),
     );
 
-    for (const bin of binaries) {
+    for (const [i, bin] of binaries.entries()) {
       appendLog(
-        `  ${binaries.indexOf(bin) + 1}/${binaries.length}  ` +
-          `0x${bin.address.toString(16).padStart(5, "0")}  ${(bin.data.length / 1024).toFixed(1)} KB`,
+        `  ${i + 1}/${binaries.length}  ` +
+          `0x${bin.address.toString(16).padStart(5, "0")}  ` +
+          `${(bin.data.length / 1024).toFixed(1)} KB`,
       );
     }
 
@@ -211,12 +289,39 @@ const flash = async () => {
 
     await loader.writeFlash(flashOptions);
     appendLog("Flash complete.");
-    await loader.after("hard_reset");
-    appendLog("Device reset — done.");
+
+    if (!shouldConfigure) {
+      await loader.after("hard_reset");
+      appendLog("Device reset.");
+      appendLog("No configuration values provided — skipping serial setup.");
+      return;
+    }
+
+    // ── Configure ──
+    // Disconnect the flasher transport (closes the port) then reopen it
+    // at the firmware's baud rate. Reopening the port toggles DTR which
+    // triggers the board's auto-reset circuit — no manual RST needed.
+
+    appendLog("Preparing for configuration…");
+    const port = serialPort;
+    await transport!.disconnect();
+    transport = null;
+    loader = null;
+    serialPort = null;
+    connected = false;
+
+    appendLog("Reopening serial port (this resets the board)…");
+    const values = collectConfigValues(fields);
+
+    await configureDevice({ port, values, log: appendLog });
+
+    appendLog("Done — device is configured and running.");
   } finally {
     setBusy(false);
   }
 };
+
+// ── Event listeners ───────────────────────────────────────────────────
 
 connectButton.addEventListener("click", () => {
   connect().catch((e: unknown) => appendLog(`Connect failed: ${toErrorMessage(e)}`));

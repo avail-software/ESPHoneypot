@@ -5,6 +5,15 @@ export interface FlashImage {
   address: number;
 }
 
+export interface ConfigField {
+  id: string;
+  label: string;
+  type: "text" | "password" | "url" | "checkbox";
+  defaultValue: string;
+  placeholder?: string;
+  required?: boolean;
+}
+
 export interface BoardConfig {
   id: string;
   name: string;
@@ -15,6 +24,8 @@ export interface BoardConfig {
   flashFreq: FlashFreqValues;
   flashSize: FlashSizeValues;
   defaultBaudrate: number;
+  /** Fields the user can configure via the first-boot serial wizard. Order matters. */
+  configFields?: ConfigField[];
 }
 
 /**
@@ -37,6 +48,55 @@ export const BOARDS: BoardConfig[] = [
     flashFreq: "keep",
     flashSize: "keep",
     defaultBaudrate: 921600,
+    configFields: [
+      {
+        id: "wifi_ssid",
+        label: "WiFi SSID",
+        type: "text",
+        defaultValue: "",
+        placeholder: "Your network name",
+        required: true,
+      },
+      {
+        id: "wifi_pass",
+        label: "WiFi Password",
+        type: "password",
+        defaultValue: "",
+        placeholder: "Your network password",
+        required: true,
+      },
+      {
+        id: "canary_url",
+        label: "Canary Token URL",
+        type: "url",
+        defaultValue: "",
+        placeholder: "https://canarytokens.com/...",
+      },
+      {
+        id: "ftp_user",
+        label: "FTP Username",
+        type: "text",
+        defaultValue: "admin",
+      },
+      {
+        id: "ftp_pass",
+        label: "FTP Password",
+        type: "password",
+        defaultValue: "password",
+      },
+      {
+        id: "append_ip",
+        label: "Append IP to Canary URL",
+        type: "checkbox",
+        defaultValue: "n",
+      },
+      {
+        id: "append_char",
+        label: "URL Append Delimiter",
+        type: "text",
+        defaultValue: "?",
+      },
+    ],
   },
 ];
 
