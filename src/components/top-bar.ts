@@ -46,7 +46,7 @@ export class TopBar implements Component {
       color: C.yellow,
       letterSpacing: "0.3em",
     });
-    brand.textContent = "HNY//FLASH";
+    brand.textContent = "HONEY//BOOT";
     left.appendChild(brand);
 
     this.stepEl = createElement("span");

@@ -228,7 +228,12 @@ export class SelectScreen implements Component {
     if (!board) return;
 
     const hasConfig = (board.configFields?.length ?? 0) > 0;
-    this.store.set({ screen: hasConfig ? "configure" : "flash" });
+    const nextScreen = hasConfig ? "configure" : "flash";
+
+    this.store.set({ confirming: true });
+    setTimeout(() => {
+      this.store.set({ screen: nextScreen, confirming: false });
+    }, 520);
   }
 
   mount(parent: HTMLElement): void {

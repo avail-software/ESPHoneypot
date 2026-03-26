@@ -20,6 +20,7 @@ export interface LogEntry {
 
 export interface AppState {
   screen: Screen;
+  confirming: boolean;
   selectedBoardId: string;
   connectionState: ConnectionState;
   detectedChip: string | null;
@@ -33,6 +34,7 @@ export interface AppState {
 
 export const INITIAL_STATE: AppState = {
   screen: "boot",
+  confirming: false,
   selectedBoardId: "heltec-v3",
   connectionState: "disconnected",
   detectedChip: null,

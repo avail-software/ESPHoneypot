@@ -45,7 +45,7 @@ export class BootScreen implements Component {
 
       <div data-phase="1" style="display:none;text-align:center">
         <div style="display:flex;justify-content:center;margin-bottom:16px">${iconShield(52)}</div>
-        <div style="font-size:22px;color:${C.yellow};letter-spacing:0.12em;margin-bottom:8px">HNY//FLASH</div>
+        <div style="font-size:22px;color:${C.yellow};letter-spacing:0.12em;margin-bottom:8px">HONEY//BOOT</div>
         <div style="font-size:10px;color:#333;letter-spacing:0.4em">FTP HONEYPOT DEPLOY</div>
       </div>
 
