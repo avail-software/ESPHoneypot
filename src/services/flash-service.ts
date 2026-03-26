@@ -183,16 +183,32 @@ export class FlashService {
       this.store.set({ flashPhase: "configuring" });
       this.log("Preparing for configuration…");
 
+      this.log("Resetting board into firmware…");
+      await this.loader.after("hard_reset");
+
       const port = this.port;
-      await this.transport!.disconnect();
+      try {
+        await this.transport!.disconnect();
+      } catch {
+        /* transport may already be torn down after hard_reset */
+      }
       this.transport = null;
       this.loader = null;
       this.port = null;
       this.store.set({ connectionState: "disconnected" });
 
-      this.log("Reopening serial port (this resets the board)…");
+      try {
+        await port!.close();
+      } catch {
+        /* port may already be closed by transport */
+      }
+
+      this.log("Waiting for board to boot…");
+      await new Promise((r) => setTimeout(r, 5000));
+
+      this.log("Reopening serial port…");
       await configureDevice({
-        port,
+        port: port!,
         values: configValues,
         log: (msg: string) => this.log(msg),
       });

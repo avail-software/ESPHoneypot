@@ -33,7 +33,9 @@ const SAVED_PATTERN = "saved";
 export async function configureDevice(opts: ConfigureOptions): Promise<void> {
   const { port, values, log, timeoutMs = 45_000 } = opts;
 
+  log("Opening port at 115 200 baud…");
   await port.open({ baudRate: 115200 });
+  log("Port open — listening for first-boot prompt…");
 
   const reader = port.readable.getReader();
   const writer = port.writable.getWriter();
