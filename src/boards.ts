@@ -8,10 +8,18 @@ export interface FlashImage {
 export interface ConfigField {
   id: string;
   label: string;
-  type: "text" | "password" | "url" | "checkbox";
+  type: "text" | "password" | "url" | "checkbox" | "select";
   defaultValue: string;
   placeholder?: string;
   required?: boolean;
+  /** For type "select": the available options. */
+  options?: { value: string; label: string }[];
+  /**
+   * Only include this field when another field has a specific value.
+   * The field is hidden in the UI and excluded from serial config values
+   * when the condition is not met.
+   */
+  visibleWhen?: { field: string; value: string };
 }
 
 export interface BoardConfig {
@@ -66,11 +74,30 @@ export const BOARDS: BoardConfig[] = [
         required: true,
       },
       {
+        id: "alert_mode",
+        label: "Alert Target",
+        type: "select",
+        defaultValue: "canary",
+        options: [
+          { value: "canary", label: "Canary Token" },
+          { value: "discord", label: "Discord Webhook" },
+        ],
+      },
+      {
         id: "canary_url",
         label: "Canary Token URL",
         type: "url",
         defaultValue: "",
         placeholder: "https://canarytokens.com/...",
+        visibleWhen: { field: "alert_mode", value: "canary" },
+      },
+      {
+        id: "discord_webhook",
+        label: "Discord Webhook URL",
+        type: "url",
+        defaultValue: "",
+        placeholder: "https://discord.com/api/webhooks/...",
+        visibleWhen: { field: "alert_mode", value: "discord" },
       },
       {
         id: "ftp_user",

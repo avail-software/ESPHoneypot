@@ -48,8 +48,8 @@ export class StatBars implements Component {
 
       const track = createElement("div");
       Object.assign(track.style, {
-        width: "6px",
-        height: "52px",
+        width: "8px",
+        height: "60px",
         background: C.dim,
         position: "relative",
       });
@@ -71,7 +71,7 @@ export class StatBars implements Component {
       label.textContent = bar.label;
       Object.assign(label.style, {
         fontFamily: FONT,
-        fontSize: "4px",
+        fontSize: "7px",
         color: C.textFaint,
         letterSpacing: "0.15em",
       });

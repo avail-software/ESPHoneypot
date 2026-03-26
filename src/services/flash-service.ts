@@ -225,11 +225,27 @@ export class FlashService {
   }
 
   collectConfigValues(fields: ConfigField[]): string[] {
-    return fields.map((f) => {
+    const values: string[] = [];
+    const fieldValues = new Map<string, string>();
+
+    for (const f of fields) {
       const el = document.querySelector<HTMLInputElement>(`#cfg_${f.id}`);
-      if (!el) return f.defaultValue;
-      if (f.type === "checkbox") return el.checked ? "y" : "n";
-      return el.value || f.defaultValue;
-    });
+      const val = el
+        ? f.type === "checkbox"
+          ? el.checked ? "y" : "n"
+          : el.value || f.defaultValue
+        : f.defaultValue;
+      fieldValues.set(f.id, val);
+    }
+
+    for (const f of fields) {
+      if (f.visibleWhen) {
+        const controlVal = fieldValues.get(f.visibleWhen.field) ?? "";
+        if (controlVal !== f.visibleWhen.value) continue;
+      }
+      values.push(fieldValues.get(f.id) ?? f.defaultValue);
+    }
+
+    return values;
   }
 }

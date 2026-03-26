@@ -26,7 +26,7 @@ export class TopBar implements Component {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "12px 18px",
+      padding: "14px 20px",
       background: C.dark,
       borderBottom: `3px solid ${C.yellow}`,
       flexShrink: "0",
@@ -36,13 +36,13 @@ export class TopBar implements Component {
     Object.assign(left.style, {
       display: "flex",
       alignItems: "center",
-      gap: "8px",
+      gap: "10px",
     });
     left.innerHTML = iconFlash(18, C.yellow);
     const brand = createElement("span");
     Object.assign(brand.style, {
       fontFamily: FONT,
-      fontSize: "7px",
+      fontSize: "12px",
       color: C.yellow,
       letterSpacing: "0.3em",
     });
@@ -52,7 +52,7 @@ export class TopBar implements Component {
     this.stepEl = createElement("span");
     Object.assign(this.stepEl.style, {
       fontFamily: FONT,
-      fontSize: "5px",
+      fontSize: "9px",
       color: C.textMid,
       letterSpacing: "0.3em",
     });
@@ -67,8 +67,8 @@ export class TopBar implements Component {
 
     const dot = createElement("div");
     Object.assign(dot.style, {
-      width: "6px",
-      height: "6px",
+      width: "8px",
+      height: "8px",
       background: C.yellow,
       animation: "blink 2s step-end infinite",
     });
@@ -76,7 +76,7 @@ export class TopBar implements Component {
     this.statusText = createElement("span");
     Object.assign(this.statusText.style, {
       fontFamily: FONT,
-      fontSize: "5px",
+      fontSize: "9px",
       color: C.textMid,
     });
     this.statusText.textContent = STATUS_LABELS.disconnected;

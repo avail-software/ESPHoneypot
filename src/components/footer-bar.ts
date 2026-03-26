@@ -12,9 +12,9 @@ export interface FooterButton {
 
 const BTN_BASE: Partial<CSSStyleDeclaration> = {
   fontFamily: FONT,
-  fontSize: "6px",
+  fontSize: "11px",
   letterSpacing: "0.15em",
-  padding: "8px 14px",
+  padding: "10px 18px",
   cursor: "pointer",
   display: "flex",
   alignItems: "center",
@@ -79,7 +79,7 @@ export class FooterBar implements Component {
       alignItems: "center",
       gap: "6px",
       fontFamily: FONT,
-      fontSize: "5px",
+      fontSize: "9px",
       color: C.pink,
       paddingBottom: "8px",
     });

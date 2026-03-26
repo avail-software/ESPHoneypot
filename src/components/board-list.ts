@@ -31,7 +31,7 @@ export class BoardList implements Component {
       Object.assign(row.style, {
         display: "flex",
         alignItems: "center",
-        padding: "9px 18px",
+        padding: "12px 20px",
         cursor: "pointer",
         borderBottom: `1px solid ${C.dim}`,
         borderLeft: "3px solid transparent",
@@ -42,12 +42,12 @@ export class BoardList implements Component {
       const caret = createElement("span");
       Object.assign(caret.style, {
         fontFamily: FONT,
-        fontSize: "7px",
+        fontSize: "12px",
         color: C.yellow,
         animation: "blink 2s step-end infinite",
         visibility: "hidden",
         flexShrink: "0",
-        width: "10px",
+        width: "14px",
       });
       caret.textContent = "▶";
 
@@ -57,13 +57,13 @@ export class BoardList implements Component {
         minWidth: "0",
         display: "flex",
         flexDirection: "column",
-        gap: "3px",
+        gap: "5px",
       });
 
       const nameEl = createElement("span");
       Object.assign(nameEl.style, {
         fontFamily: FONT,
-        fontSize: "7px",
+        fontSize: "12px",
         color: C.text,
         whiteSpace: "nowrap",
         overflow: "hidden",
@@ -74,7 +74,7 @@ export class BoardList implements Component {
       const chipEl = createElement("span");
       Object.assign(chipEl.style, {
         fontFamily: FONT,
-        fontSize: "5px",
+        fontSize: "9px",
         color: C.textMid,
         letterSpacing: "0.1em",
       });
@@ -83,7 +83,7 @@ export class BoardList implements Component {
       const descEl = createElement("span");
       Object.assign(descEl.style, {
         fontFamily: FONT,
-        fontSize: "5px",
+        fontSize: "9px",
         color: C.textFaint,
         whiteSpace: "nowrap",
         overflow: "hidden",

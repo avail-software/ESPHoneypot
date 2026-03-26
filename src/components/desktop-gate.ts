@@ -34,8 +34,8 @@ export class DesktopGate implements Component {
 
       <div style="text-align:center">
         <div style="display:flex;justify-content:center;margin-bottom:20px">${iconShield(52, C.yellow, C.pink)}</div>
-        <div style="font-size:10px;color:${C.yellow};letter-spacing:0.12em;margin-bottom:16px">DESKTOP REQUIRED</div>
-        <div style="font-size:5px;color:${C.textMid};max-width:400px;line-height:2;padding:0 16px">This tool requires Chrome or Edge on a desktop computer with Web Serial API support.</div>
+        <div style="font-size:16px;color:${C.yellow};letter-spacing:0.12em;margin-bottom:16px">DESKTOP REQUIRED</div>
+        <div style="font-size:9px;color:${C.textMid};max-width:400px;line-height:2;padding:0 16px">This tool requires Chrome or Edge on a desktop computer with Web Serial API support.</div>
       </div>
     `;
   }

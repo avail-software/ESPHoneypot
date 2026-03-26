@@ -209,7 +209,7 @@ export class Viewport3D implements Component {
     const label = createElement("div");
     Object.assign(label.style, {
       fontFamily: FONT,
-      fontSize: "5px",
+      fontSize: "9px",
       color: "#333",
       letterSpacing: "0.3em",
     });
@@ -223,8 +223,8 @@ export class Viewport3D implements Component {
     this.dots = defaultColors.map((color) => {
       const dot = createElement("div") as HTMLDivElement;
       Object.assign(dot.style, {
-        width: "5px",
-        height: "5px",
+        width: "7px",
+        height: "7px",
         background: color,
         transition: "background 0.4s",
       });

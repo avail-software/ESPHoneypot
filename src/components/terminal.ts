@@ -65,8 +65,8 @@ export class Terminal implements Component {
     const makeDot = (bg: string): HTMLElement => {
       const d = createElement("div");
       Object.assign(d.style, {
-        width: "5px",
-        height: "5px",
+        width: "7px",
+        height: "7px",
         borderRadius: "50%",
         background: bg,
       });
@@ -79,7 +79,7 @@ export class Terminal implements Component {
 
     this.chipLabel = createElement("span");
     Object.assign(this.chipLabel.style, {
-      fontSize: "4px",
+      fontSize: "8px",
       color: "#222",
       letterSpacing: "0.25em",
       textTransform: "uppercase",
@@ -100,8 +100,8 @@ export class Terminal implements Component {
 
     this.cursor = createElement("div");
     Object.assign(this.cursor.style, {
-      width: "5px",
-      height: "9px",
+      width: "7px",
+      height: "13px",
       background: C.yellow,
       animation: "terminal-blink 1s step-end infinite",
       marginTop: "2px",
@@ -147,7 +147,7 @@ export class Terminal implements Component {
   private createLine(index: number, entry: LogEntry): HTMLElement {
     const line = createElement("div");
     Object.assign(line.style, {
-      fontSize: "7px",
+      fontSize: "11px",
       lineHeight: "2.1",
       letterSpacing: "0.04em",
       whiteSpace: "nowrap",

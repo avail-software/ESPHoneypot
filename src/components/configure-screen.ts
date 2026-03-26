@@ -85,7 +85,7 @@ export class ConfigureScreen implements Component {
     const title = createElement("div");
     Object.assign(title.style, {
       fontFamily: FONT,
-      fontSize: "10px",
+      fontSize: "16px",
       color: C.text,
       letterSpacing: "0.06em",
     });
@@ -94,7 +94,7 @@ export class ConfigureScreen implements Component {
     const subtitle = createElement("div");
     Object.assign(subtitle.style, {
       fontFamily: FONT,
-      fontSize: "5px",
+      fontSize: "9px",
       color: C.textMid,
       letterSpacing: "0.25em",
       marginTop: "4px",

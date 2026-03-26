@@ -71,7 +71,7 @@ export class FlashScreen implements Component {
 
     this.topLabel = createElement("span");
     Object.assign(this.topLabel.style, {
-      fontSize: "6px",
+      fontSize: "11px",
       color: C.dark,
       letterSpacing: "0.25em",
     });
@@ -82,7 +82,7 @@ export class FlashScreen implements Component {
 
     this.boardLabel = createElement("span");
     Object.assign(this.boardLabel.style, {
-      fontSize: "5px",
+      fontSize: "9px",
       color: "rgba(0,0,0,0.4)",
       letterSpacing: "0.15em",
     });
@@ -100,14 +100,14 @@ export class FlashScreen implements Component {
 
     this.pctValue = createElement("span");
     Object.assign(this.pctValue.style, {
-      fontSize: "10px",
+      fontSize: "18px",
       color: C.dark,
     });
     this.pctValue.textContent = "0";
 
     this.pctSign = createElement("span");
     Object.assign(this.pctSign.style, {
-      fontSize: "6px",
+      fontSize: "11px",
       color: C.dark,
     });
     this.pctSign.textContent = "%";
@@ -148,7 +148,7 @@ export class FlashScreen implements Component {
     warnIcon.innerHTML = iconWarn(12, C.textFaint);
     const warnText = createElement("span");
     Object.assign(warnText.style, {
-      fontSize: "4px",
+      fontSize: "8px",
       color: C.textFaint,
       letterSpacing: "0.1em",
     });
@@ -159,14 +159,14 @@ export class FlashScreen implements Component {
     this.flashFooterRight = createElement("div");
     Object.assign(this.flashFooterRight.style, {
       display: "flex",
-      gap: "3px",
+      gap: "5px",
       alignItems: "center",
     });
     for (let i = 0; i < 4; i++) {
       const block = createElement("div");
       Object.assign(block.style, {
-        width: "8px",
-        height: "8px",
+        width: "10px",
+        height: "10px",
         background: C.dim,
       });
       this.progressBlocks.push(block);
@@ -190,14 +190,14 @@ export class FlashScreen implements Component {
     });
     const doneTitle = createElement("span");
     Object.assign(doneTitle.style, {
-      fontSize: "6px",
+      fontSize: "11px",
       color: C.pink,
       letterSpacing: "0.1em",
     });
     doneTitle.textContent = "HONEYPOT ACTIVE";
     const doneSub = createElement("span");
     Object.assign(doneSub.style, {
-      fontSize: "4px",
+      fontSize: "8px",
       color: C.textFaint,
       letterSpacing: "0.05em",
     });
@@ -213,11 +213,11 @@ export class FlashScreen implements Component {
     resetBtn.textContent = "RESET";
     Object.assign(resetBtn.style, {
       fontFamily: FONT,
-      fontSize: "5px",
+      fontSize: "9px",
       color: C.textFaint,
       background: "transparent",
       border: `1px solid ${C.dim}`,
-      padding: "7px 12px",
+      padding: "10px 16px",
       cursor: "pointer",
       letterSpacing: "0.1em",
     });

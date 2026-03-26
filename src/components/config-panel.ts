@@ -11,20 +11,21 @@ const INPUT_STYLE: Partial<CSSStyleDeclaration> = {
   border: `1px solid ${C.mid}`,
   color: "#e2e8f0",
   fontFamily: FONT,
-  fontSize: "6px",
-  padding: "7px 10px",
+  fontSize: "11px",
+  padding: "10px 12px",
   width: "100%",
   boxSizing: "border-box",
   outline: "none",
+  letterSpacing: "0.05em",
 };
 
 const LABEL_STYLE: Partial<CSSStyleDeclaration> = {
   fontFamily: FONT,
-  fontSize: "5px",
+  fontSize: "8px",
   color: C.textMid,
-  letterSpacing: "0.25em",
+  letterSpacing: "0.2em",
   textTransform: "uppercase",
-  marginBottom: "4px",
+  marginBottom: "6px",
   display: "block",
 };
 
@@ -36,12 +37,11 @@ function createSectionLabel(text: string, color: string): HTMLElement {
   const label = createElement("div");
   Object.assign(label.style, {
     fontFamily: FONT,
-    fontSize: "5px",
+    fontSize: "8px",
     color,
-    letterSpacing: "0.25em",
+    letterSpacing: "0.2em",
     textTransform: "uppercase",
-    padding: "12px 0 6px",
-    fontWeight: "bold",
+    padding: "14px 0 8px",
   });
   label.textContent = text;
   return label;
@@ -49,7 +49,7 @@ function createSectionLabel(text: string, color: string): HTMLElement {
 
 function createTextField(field: ConfigField): HTMLElement {
   const wrapper = createElement("div");
-  wrapper.style.marginBottom = "8px";
+  wrapper.style.marginBottom = "12px";
 
   const label = createElement("label");
   applyStyle(label, LABEL_STYLE);
@@ -70,22 +70,87 @@ function createTextField(field: ConfigField): HTMLElement {
   return wrapper;
 }
 
+function createSelectField(
+  field: ConfigField,
+  onChange: (value: string) => void,
+): HTMLElement {
+  const wrapper = createElement("div");
+  wrapper.style.marginBottom = "12px";
+
+  const label = createElement("label");
+  applyStyle(label, LABEL_STYLE);
+  label.setAttribute("for", `cfg_${field.id}`);
+  label.textContent = field.label;
+
+  const btnRow = createElement("div");
+  Object.assign(btnRow.style, {
+    display: "flex",
+    gap: "6px",
+  });
+
+  const hiddenInput = createElement("input");
+  hiddenInput.type = "hidden";
+  hiddenInput.id = `cfg_${field.id}`;
+  hiddenInput.value = field.defaultValue;
+
+  const buttons: HTMLButtonElement[] = [];
+
+  for (const opt of field.options ?? []) {
+    const btn = createElement("button") as HTMLButtonElement;
+    btn.type = "button";
+    const isActive = opt.value === field.defaultValue;
+    Object.assign(btn.style, {
+      fontFamily: FONT,
+      fontSize: "10px",
+      padding: "10px 16px",
+      border: `2px solid ${isActive ? C.yellow : C.mid}`,
+      background: isActive ? C.yellow : "#050505",
+      color: isActive ? C.dark : C.textFaint,
+      cursor: "pointer",
+      letterSpacing: "0.1em",
+      flex: "1",
+      transition: "all 0.15s",
+    });
+    btn.textContent = opt.label;
+    btn.dataset.value = opt.value;
+
+    btn.addEventListener("click", () => {
+      hiddenInput.value = opt.value;
+      for (const b of buttons) {
+        const active = b.dataset.value === opt.value;
+        b.style.border = `2px solid ${active ? C.yellow : C.mid}`;
+        b.style.background = active ? C.yellow : "#050505";
+        b.style.color = active ? C.dark : C.textFaint;
+      }
+      onChange(opt.value);
+    });
+
+    buttons.push(btn);
+    btnRow.appendChild(btn);
+  }
+
+  wrapper.appendChild(label);
+  wrapper.appendChild(hiddenInput);
+  wrapper.appendChild(btnRow);
+  return wrapper;
+}
+
 function createCheckbox(field: ConfigField): HTMLElement {
   const wrapper = createElement("div");
   Object.assign(wrapper.style, {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
-    marginBottom: "8px",
+    gap: "10px",
+    marginBottom: "12px",
     cursor: "pointer",
   });
 
   const box = createElement("div");
   const checked = field.defaultValue === "y";
   Object.assign(box.style, {
-    width: "12px",
-    height: "12px",
-    border: `1px solid ${C.mid}`,
+    width: "16px",
+    height: "16px",
+    border: `2px solid ${C.mid}`,
     background: checked ? C.yellow : "#050505",
     flexShrink: "0",
     cursor: "pointer",
@@ -100,9 +165,9 @@ function createCheckbox(field: ConfigField): HTMLElement {
   const label = createElement("span");
   Object.assign(label.style, {
     fontFamily: FONT,
-    fontSize: "5px",
+    fontSize: "8px",
     color: C.textMid,
-    letterSpacing: "0.15em",
+    letterSpacing: "0.1em",
     cursor: "pointer",
   });
   label.textContent = field.label;
@@ -128,6 +193,8 @@ export class ConfigPanel implements Component {
   private unsub: () => void;
   private baudrateInput: HTMLInputElement | null = null;
   private eraseAllCheckbox: HTMLInputElement | null = null;
+  private conditionalEls: { el: HTMLElement; field: string; value: string }[] = [];
+  private fieldValues: Map<string, string> = new Map();
 
   constructor(store: Store<AppState>) {
     this.el = createElement("div");
@@ -147,19 +214,27 @@ export class ConfigPanel implements Component {
 
   private render(boardId: string): void {
     this.el.innerHTML = "";
+    this.conditionalEls = [];
+    this.fieldValues.clear();
+
     const board = findBoard(boardId);
     if (!board) return;
 
     const fields = board.configFields ?? [];
+
+    for (const f of fields) {
+      if (f.type === "select") {
+        this.fieldValues.set(f.id, f.defaultValue);
+      }
+    }
+
     const networkFields = fields.filter((f) => f.id.startsWith("wifi_"));
     const honeypotFields = fields.filter((f) => !f.id.startsWith("wifi_"));
 
     if (networkFields.length > 0) {
       this.el.appendChild(createSectionLabel("NETWORK", C.yellow));
       for (const f of networkFields) {
-        this.el.appendChild(
-          f.type === "checkbox" ? createCheckbox(f) : createTextField(f),
-        );
+        this.el.appendChild(this.createFieldEl(f));
       }
     }
 
@@ -182,28 +257,29 @@ export class ConfigPanel implements Component {
             display: "flex",
             gap: "10px",
           });
-          const left = createTextField(f);
+          const left = this.createFieldEl(f);
           left.style.flex = "1";
-          const right = createTextField(otherFields[i + 1]);
+          const right = this.createFieldEl(otherFields[i + 1]);
           right.style.flex = "1";
           row.appendChild(left);
           row.appendChild(right);
           this.el.appendChild(row);
           i += 2;
         } else {
-          this.el.appendChild(
-            f.type === "checkbox" ? createCheckbox(f) : createTextField(f),
-          );
+          const el = this.createFieldEl(f);
+          this.trackConditional(f, el);
+          this.el.appendChild(el);
           i++;
         }
       }
 
       if (appendIpField) {
         const checkEl = createCheckbox(appendIpField);
+        this.trackConditional(appendIpField, checkEl);
         this.el.appendChild(checkEl);
 
         if (delimiterField) {
-          const delimEl = createTextField(delimiterField);
+          const delimEl = this.createFieldEl(delimiterField);
           const hidden = checkEl.querySelector("input[type=checkbox]") as HTMLInputElement | null;
           const isChecked = hidden?.checked ?? false;
           delimEl.style.display = isChecked ? "block" : "none";
@@ -218,6 +294,37 @@ export class ConfigPanel implements Component {
     }
 
     this.renderAdvanced(board.defaultBaudrate);
+    this.updateConditionalVisibility();
+  }
+
+  private createFieldEl(field: ConfigField): HTMLElement {
+    if (field.type === "select") {
+      return createSelectField(field, (value) => {
+        this.fieldValues.set(field.id, value);
+        this.updateConditionalVisibility();
+      });
+    }
+    if (field.type === "checkbox") {
+      return createCheckbox(field);
+    }
+    return createTextField(field);
+  }
+
+  private trackConditional(field: ConfigField, el: HTMLElement): void {
+    if (field.visibleWhen) {
+      this.conditionalEls.push({
+        el,
+        field: field.visibleWhen.field,
+        value: field.visibleWhen.value,
+      });
+    }
+  }
+
+  private updateConditionalVisibility(): void {
+    for (const entry of this.conditionalEls) {
+      const controlValue = this.fieldValues.get(entry.field) ?? "";
+      entry.el.style.display = controlValue === entry.value ? "" : "none";
+    }
   }
 
   private renderAdvanced(defaultBaudrate: number): void {
@@ -231,12 +338,12 @@ export class ConfigPanel implements Component {
     const summary = createElement("summary");
     Object.assign(summary.style, {
       fontFamily: FONT,
-      fontSize: "5px",
+      fontSize: "8px",
       color: C.textMid,
-      letterSpacing: "0.25em",
+      letterSpacing: "0.2em",
       cursor: "pointer",
       listStyle: "none",
-      padding: "6px 0",
+      padding: "8px 0",
     });
     summary.textContent = "▸ ADVANCED";
 
@@ -248,7 +355,7 @@ export class ConfigPanel implements Component {
     content.style.paddingTop = "6px";
 
     const baudrateWrapper = createElement("div");
-    baudrateWrapper.style.marginBottom = "8px";
+    baudrateWrapper.style.marginBottom = "12px";
     const baudrateLabel = createElement("label");
     applyStyle(baudrateLabel, LABEL_STYLE);
     baudrateLabel.setAttribute("for", "cfg_baudrate");
@@ -267,15 +374,15 @@ export class ConfigPanel implements Component {
     Object.assign(eraseWrapper.style, {
       display: "flex",
       alignItems: "center",
-      gap: "8px",
+      gap: "10px",
       cursor: "pointer",
     });
 
     const eraseBox = createElement("div");
     Object.assign(eraseBox.style, {
-      width: "12px",
-      height: "12px",
-      border: `1px solid ${C.mid}`,
+      width: "16px",
+      height: "16px",
+      border: `2px solid ${C.mid}`,
       background: C.yellow,
       flexShrink: "0",
       cursor: "pointer",
@@ -290,9 +397,9 @@ export class ConfigPanel implements Component {
     const eraseLabel = createElement("span");
     Object.assign(eraseLabel.style, {
       fontFamily: FONT,
-      fontSize: "5px",
+      fontSize: "8px",
       color: C.textMid,
-      letterSpacing: "0.15em",
+      letterSpacing: "0.1em",
       cursor: "pointer",
     });
     eraseLabel.textContent = "ERASE ALL FLASH FIRST";

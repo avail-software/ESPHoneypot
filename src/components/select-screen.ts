@@ -91,7 +91,7 @@ export class SelectScreen implements Component {
     const title = createElement("div");
     Object.assign(title.style, {
       fontFamily: FONT,
-      fontSize: "10px",
+      fontSize: "16px",
       color: C.text,
       letterSpacing: "0.06em",
     });
@@ -100,7 +100,7 @@ export class SelectScreen implements Component {
     const subtitle = createElement("div");
     Object.assign(subtitle.style, {
       fontFamily: FONT,
-      fontSize: "5px",
+      fontSize: "9px",
       color: C.textMid,
       letterSpacing: "0.25em",
       marginTop: "4px",
@@ -143,7 +143,7 @@ export class SelectScreen implements Component {
     this.scanStatusText = createElement("span");
     Object.assign(this.scanStatusText.style, {
       fontFamily: FONT,
-      fontSize: "5px",
+      fontSize: "9px",
       color: C.textMid,
       letterSpacing: "0.15em",
     });
@@ -155,11 +155,11 @@ export class SelectScreen implements Component {
     this.scanBtn = createElement("button");
     Object.assign(this.scanBtn.style, {
       fontFamily: FONT,
-      fontSize: "6px",
+      fontSize: "11px",
       background: C.yellow,
       color: C.dark,
       border: "none",
-      padding: "6px 12px",
+      padding: "8px 16px",
       cursor: "pointer",
       letterSpacing: "0.1em",
       flexShrink: "0",

@@ -34,7 +34,7 @@ export class BootScreen implements Component {
     });
 
     const blocks = Array.from({ length: 16 }, (_, i) =>
-      `<div style="width:8px;height:8px;background:${i < 10 ? C.yellow : C.mid}"></div>`,
+      `<div style="width:10px;height:10px;background:${i < 10 ? C.yellow : C.mid}"></div>`,
     ).join("");
 
     el.innerHTML = `
@@ -45,19 +45,19 @@ export class BootScreen implements Component {
 
       <div data-phase="1" style="display:none;text-align:center">
         <div style="display:flex;justify-content:center;margin-bottom:16px">${iconShield(52)}</div>
-        <div style="font-size:14px;color:${C.yellow};letter-spacing:0.12em;margin-bottom:8px">HNY//FLASH</div>
-        <div style="font-size:6px;color:#333;letter-spacing:0.4em">FTP HONEYPOT DEPLOY</div>
+        <div style="font-size:22px;color:${C.yellow};letter-spacing:0.12em;margin-bottom:8px">HNY//FLASH</div>
+        <div style="font-size:10px;color:#333;letter-spacing:0.4em">FTP HONEYPOT DEPLOY</div>
       </div>
 
       <div data-phase="2" style="display:none;text-align:center;margin-top:24px">
-        <div style="font-size:5px;color:#333;margin-bottom:12px">SYSTEM INIT...</div>
+        <div style="font-size:9px;color:#333;margin-bottom:12px">SYSTEM INIT...</div>
         <div style="display:flex;gap:3px;justify-content:center">${blocks}</div>
       </div>
 
       <div data-phase="3" style="display:none;margin-top:24px">
         <div style="display:flex;align-items:center;gap:8px;justify-content:center">
           <div style="animation:blink 1s step-end infinite">${iconArrow(16, C.yellow)}</div>
-          <div style="font-size:6px;color:${C.yellow};letter-spacing:0.3em;animation:blink 1s step-end infinite">LOADING</div>
+          <div style="font-size:11px;color:${C.yellow};letter-spacing:0.3em;animation:blink 1s step-end infinite">LOADING</div>
         </div>
       </div>
     `;
