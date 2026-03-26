@@ -1,0 +1,19 @@
+{
+  "name": "honeyboot",
+  "description": "Web-based ESP32 firmware flasher using esptool-js and the Web Serial API",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^8.0.1"
+  },
+  "dependencies": {
+    "esptool-js": "^0.6.0"
+  }
+}
