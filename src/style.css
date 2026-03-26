@@ -63,6 +63,7 @@ h1 {
   justify-content: flex-start;
 }
 
+select,
 input[type="number"] {
   width: 10rem;
   background: #0b1220;
@@ -70,6 +71,17 @@ input[type="number"] {
   border: 1px solid #475569;
   border-radius: 8px;
   padding: 0.5rem;
+  font: inherit;
+}
+
+select {
+  width: auto;
+  min-width: 14rem;
+}
+
+.board-info {
+  font-size: 0.85rem;
+  color: #64748b;
 }
 
 input[type="checkbox"] {

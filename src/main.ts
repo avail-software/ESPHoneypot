@@ -1,42 +1,36 @@
 import "./style.css";
 import {
   ESPLoader,
-  type FlashFreqValues,
-  type FlashModeValues,
   type FlashOptions,
-  type FlashSizeValues,
   type IEspLoaderTerminal,
   type LoaderOptions,
   Transport,
 } from "esptool-js";
-
-// ESP32 and ESP32-S2 use 0x1000; all newer variants (S3, C2, C3, C6, H2, …) use 0x0.
-const bootloaderAddress = (chip: string): number =>
-  /ESP32-S2\b/.test(chip) || (chip.includes("ESP32") && !/ESP32-[A-Z]/.test(chip))
-    ? 0x1000
-    : 0x0;
-
-const buildFlashMap = (chip: string) => [
-  { path: "/bootloader.bin", address: bootloaderAddress(chip) },
-  { path: "/partitions.bin", address: 0x8000 },
-  { path: "/firmware.bin", address: 0x10000 },
-];
+import { type BoardConfig, BOARDS, defaultBoard } from "./boards";
 
 const app = document.querySelector<HTMLDivElement>("#app");
+if (!app) throw new Error("Could not find #app");
 
-if (!app) {
-  throw new Error("Could not find #app");
-}
+const boardOptions = BOARDS.map(
+  (b) => `<option value="${b.id}">${b.name}</option>`,
+).join("");
 
 app.innerHTML = `
   <main class="container">
-    <h1>ESP32 Web Flasher</h1>
-    <p class="lead">Flash firmware over Web Serial directly from your browser.</p>
+    <h1>HoneyBoot</h1>
+    <p class="lead">Flash firmware to your board over Web Serial.</p>
 
     <section class="panel">
       <div class="row">
+        <label for="board">Board</label>
+        <select id="board">${boardOptions}</select>
+      </div>
+
+      <p id="boardInfo" class="board-info"></p>
+
+      <div class="row">
         <label for="baudrate">Baudrate</label>
-        <input id="baudrate" type="number" min="9600" step="1" value="115200" />
+        <input id="baudrate" type="number" min="9600" step="1" />
       </div>
 
       <div class="row checkbox">
@@ -46,34 +40,53 @@ app.innerHTML = `
 
       <div class="actions">
         <button id="connectBtn" type="button">Connect</button>
-        <button id="flashBtn" type="button" disabled>Flash binaries</button>
+        <button id="flashBtn" type="button" disabled>Flash firmware</button>
       </div>
     </section>
 
     <section class="panel">
-      <h2>Status</h2>
+      <h2>Log</h2>
       <pre id="log"></pre>
     </section>
   </main>
 `;
 
-const connectButton = document.querySelector<HTMLButtonElement>("#connectBtn");
-const flashButton = document.querySelector<HTMLButtonElement>("#flashBtn");
-const baudrateInput = document.querySelector<HTMLInputElement>("#baudrate");
-const eraseAllInput = document.querySelector<HTMLInputElement>("#eraseAll");
-const logOutput = document.querySelector<HTMLPreElement>("#log");
+const $ = <T extends HTMLElement>(sel: string) => {
+  const el = document.querySelector<T>(sel);
+  if (!el) throw new Error(`Missing element: ${sel}`);
+  return el;
+};
 
-if (!connectButton || !flashButton || !baudrateInput || !eraseAllInput || !logOutput) {
-  throw new Error("Missing required UI elements");
-}
+const boardSelect = $<HTMLSelectElement>("#board");
+const boardInfo = $<HTMLParagraphElement>("#boardInfo");
+const baudrateInput = $<HTMLInputElement>("#baudrate");
+const eraseAllInput = $<HTMLInputElement>("#eraseAll");
+const connectButton = $<HTMLButtonElement>("#connectBtn");
+const flashButton = $<HTMLButtonElement>("#flashBtn");
+const logOutput = $<HTMLPreElement>("#log");
 
 let transport: Transport | null = null;
 let loader: ESPLoader | null = null;
 let connected = false;
-let detectedChip = "";
+let activeBoard: BoardConfig = defaultBoard();
 
-const appendLog = (message: string): void => {
-  logOutput.textContent += `${message}\n`;
+const showBoardInfo = (board: BoardConfig) => {
+  boardInfo.textContent = `${board.chip} · ${board.description}`;
+  baudrateInput.value = String(board.defaultBaudrate);
+};
+
+showBoardInfo(activeBoard);
+
+boardSelect.addEventListener("change", () => {
+  const match = BOARDS.find((b) => b.id === boardSelect.value);
+  if (match) {
+    activeBoard = match;
+    showBoardInfo(match);
+  }
+});
+
+const appendLog = (msg: string): void => {
+  logOutput.textContent += `${msg}\n`;
   logOutput.scrollTop = logOutput.scrollHeight;
 };
 
@@ -81,10 +94,10 @@ const terminal: IEspLoaderTerminal = {
   clean() {
     logOutput.textContent = "";
   },
-  writeLine(data: string) {
+  writeLine(data) {
     appendLog(data);
   },
-  write(data: string) {
+  write(data) {
     appendLog(data);
   },
 };
@@ -92,29 +105,23 @@ const terminal: IEspLoaderTerminal = {
 const setBusy = (busy: boolean) => {
   connectButton.disabled = busy;
   flashButton.disabled = busy || !connected;
+  boardSelect.disabled = busy || connected;
 };
 
 const fetchBinary = async (path: string): Promise<Uint8Array> => {
-  const response = await fetch(path);
-  if (!response.ok) {
-    throw new Error(`Failed to load binary: ${path}`);
-  }
-  return new Uint8Array(await response.arrayBuffer());
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(`Failed to fetch ${path}`);
+  return new Uint8Array(await res.arrayBuffer());
 };
 
-const ensureWebSerial = () => {
-  if (!("serial" in navigator)) {
-    throw new Error("Web Serial API not available. Use Chrome or Edge.");
-  }
-};
-
-const toErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
+const toErrorMessage = (err: unknown): string =>
+  err instanceof Error ? err.message : String(err);
 
 const connect = async () => {
-  ensureWebSerial();
+  if (!("serial" in navigator)) {
+    throw new Error("Web Serial API not supported. Use Chrome or Edge.");
+  }
 
-  // Disconnect any existing transport before requesting a new port.
   if (transport) {
     await transport.disconnect();
     transport = null;
@@ -123,10 +130,9 @@ const connect = async () => {
   }
 
   setBusy(true);
-  appendLog("Requesting serial port...");
+  appendLog("Requesting serial port…");
 
   try {
-    // Transport['device'] is SerialPort (from w3c-web-serial via esptool-js).
     const port = await (
       navigator as Navigator & {
         serial: { requestPort(): Promise<Transport["device"]> };
@@ -135,23 +141,27 @@ const connect = async () => {
 
     transport = new Transport(port, true);
 
-    const baudrate = Number(baudrateInput.value) || 115200;
     const options: LoaderOptions = {
       transport,
-      baudrate,
+      baudrate: Number(baudrateInput.value) || activeBoard.defaultBaudrate,
       terminal,
       debugLogging: false,
     };
 
     loader = new ESPLoader(options);
+
     try {
-      const chipName = await loader.main();
+      const chip = await loader.main();
       connected = true;
-      detectedChip = chipName;
-      appendLog(`Connected to ${chipName}`);
-      appendLog(`Bootloader address: 0x${bootloaderAddress(chipName).toString(16)}`);
+      appendLog(`Connected — ${chip}`);
+
+      if (!chip.includes(activeBoard.chip)) {
+        appendLog(
+          `WARNING: detected ${chip}, but selected board expects ${activeBoard.chip}. ` +
+            `Flash addresses may be wrong — double-check your board selection.`,
+        );
+      }
     } catch (err) {
-      // loader.main() opens the port; disconnect so it can be re-requested.
       await transport.disconnect();
       transport = null;
       loader = null;
@@ -164,53 +174,54 @@ const connect = async () => {
 
 const flash = async () => {
   if (!loader) {
-    appendLog("Not connected yet.");
+    appendLog("Not connected.");
     return;
   }
 
   setBusy(true);
-  appendLog("Preparing binaries...");
+  appendLog(`Flashing for ${activeBoard.name}…`);
 
   try {
-    const flashMap = buildFlashMap(detectedChip);
     const binaries = await Promise.all(
-      flashMap.map(async (entry) => ({
-        data: await fetchBinary(entry.path),
-        address: entry.address,
+      activeBoard.images.map(async (img) => ({
+        data: await fetchBinary(img.path),
+        address: img.address,
       })),
     );
 
+    for (const bin of binaries) {
+      appendLog(
+        `  ${binaries.indexOf(bin) + 1}/${binaries.length}  ` +
+          `0x${bin.address.toString(16).padStart(5, "0")}  ${(bin.data.length / 1024).toFixed(1)} KB`,
+      );
+    }
+
     const flashOptions: FlashOptions = {
       fileArray: binaries,
-      flashMode: "dio" as FlashModeValues,
-      flashFreq: "40m" as FlashFreqValues,
-      flashSize: "4MB" as FlashSizeValues,
+      flashMode: activeBoard.flashMode,
+      flashFreq: activeBoard.flashFreq,
+      flashSize: activeBoard.flashSize,
       eraseAll: eraseAllInput.checked,
       compress: true,
       reportProgress: (fileIndex, written, total) => {
-        const percent = total > 0 ? ((written / total) * 100).toFixed(1) : "0.0";
-        appendLog(`File ${fileIndex + 1}/${binaries.length}: ${percent}%`);
+        const pct = total > 0 ? ((written / total) * 100).toFixed(1) : "0.0";
+        appendLog(`File ${fileIndex + 1}/${binaries.length}: ${pct}%`);
       },
     };
 
-    appendLog("Flashing...");
     await loader.writeFlash(flashOptions);
     appendLog("Flash complete.");
     await loader.after("hard_reset");
-    appendLog("Device reset.");
+    appendLog("Device reset — done.");
   } finally {
     setBusy(false);
   }
 };
 
 connectButton.addEventListener("click", () => {
-  connect().catch((error: unknown) => {
-    appendLog(`Connect failed: ${toErrorMessage(error)}`);
-  });
+  connect().catch((e: unknown) => appendLog(`Connect failed: ${toErrorMessage(e)}`));
 });
 
 flashButton.addEventListener("click", () => {
-  flash().catch((error: unknown) => {
-    appendLog(`Flash failed: ${toErrorMessage(error)}`);
-  });
+  flash().catch((e: unknown) => appendLog(`Flash failed: ${toErrorMessage(e)}`));
 });
