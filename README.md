@@ -1,6 +1,6 @@
-# HONEY//BOOT
+# ESP Honeypot
 
-HONEY//BOOT is a browser-based flasher for an ESP32 FTP canary. It packages prebuilt firmware, lets an operator configure the device in a Web Serial UI, and then flashes and provisions the board directly from the browser.
+ESP Honeypot is a browser-based flasher for an ESP32 FTP canary. It packages prebuilt firmware, lets an operator configure the device in a Web Serial UI, and then flashes and provisions the board directly from the browser.
 
 The deployed device acts as an FTP honeypot/canary and supports two alerting targets:
 
